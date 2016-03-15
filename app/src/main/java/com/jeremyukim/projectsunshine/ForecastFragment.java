@@ -30,12 +30,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * A fragment containing a simple view.
- */
+
 public class ForecastFragment extends Fragment {
 
-    ArrayAdapter<String> mForecastAdapter;
+    private ArrayAdapter<String> mForecastAdapter;
 
     public ForecastFragment() {
     }
@@ -43,6 +41,7 @@ public class ForecastFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Allows the fragment to handle menu events
         setHasOptionsMenu(true);
     }
 
@@ -65,23 +64,32 @@ public class ForecastFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+
+        // Example weather data to be initially displayed
         String[] data = {
                 "Mon 6/23 - Sunny - 31/17",
                 "Tue 6/24 - Foggy - 21/8",
                 "Wed 6/25 - Cloudy - 22/17",
                 "Thurs 6/26 - Rainy - 18/11",
                 "Fri 6/27 - Foggy - 21/10",
-                "Sat 6/28 - TRAPPED IN WEATHERSTATION - 23/18",
+                "Sat 6/28 - Cloudy - 23/18",
                 "Sun 6/29 - Sunny - 20/7"
         };
         List<String> weekForecast = new ArrayList<String>(Arrays.asList(data));
 
-        mForecastAdapter = new ArrayAdapter<String>(getActivity(), R.layout.list_item_forecast, R.id.list_item_forecast_textview, data);
+        // Now that we have some dummy forecast data, create an ArrayAdapter which will populate the listview
+        mForecastAdapter =
+                new ArrayAdapter<String>(
+                        getActivity(), // The current context (this activity)
+                        R.layout.list_item_forecast, // The name of the layout ID.
+                        R.id.list_item_forecast_textview, // The ID of the textview to populate.
+                        weekForecast);
+
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
+        // Attaches this adapter to the listview using a reference
         ListView listView = (ListView) rootView.findViewById(R.id.listview_forecast);
         listView.setAdapter(mForecastAdapter);
-
 
         return rootView;
     }
@@ -90,9 +98,6 @@ public class ForecastFragment extends Fragment {
 
         private final String LOG_TAG = FetchWeatherTask.class.getSimpleName();
 
-        /* The date/time conversion code is going to be moved outside the asynctask later,
-       * so for convenience we're breaking it out into its own method now.
-       */
         private String getReadableDateString(long time){
             // Because the API returns a unix timestamp (measured in seconds),
             // it must be converted to milliseconds in order to be converted to valid date.
@@ -188,11 +193,10 @@ public class ForecastFragment extends Fragment {
             return resultStrs;
 
         }
-
         @Override
         protected String[] doInBackground(String... params) {
 
-            // If there's no zip code, there's nothing to look up.  Verify size of params.
+            // If there's no zip code, there's nothing to look up
             if (params.length == 0) {
                 return null;
             }
@@ -204,6 +208,7 @@ public class ForecastFragment extends Fragment {
 
             // Will contain the raw JSON response as a string.
             String forecastJsonStr = null;
+
             String format = "json";
             String units = "metric";
             int numDays = 7;
@@ -212,7 +217,8 @@ public class ForecastFragment extends Fragment {
                 // Construct the URL for the OpenWeatherMap query
                 // Possible parameters are available at OWM's forecast API page, at
                 // http://openweathermap.org/API#forecast
-                final String FORECAST_BASE_URL = "http://api.openweathermap.org/data/2.5/forecast/daily?";
+                final String FORECAST_BASE_URL =
+                        "http://api.openweathermap.org/data/2.5/forecast/daily?";
                 final String QUERY_PARAM = "q";
                 final String FORMAT_PARAM = "mode";
                 final String UNITS_PARAM = "units";
@@ -259,14 +265,13 @@ public class ForecastFragment extends Fragment {
                 }
                 forecastJsonStr = buffer.toString();
 
-                Log.v(LOG_TAG, "Forecast JSON String: " + forecastJsonStr);
-
+                Log.v(LOG_TAG, "Forecast string: " + forecastJsonStr);
             } catch (IOException e) {
-                Log.e("ForecastFragment", "Error ", e);
+                Log.e(LOG_TAG, "Error ", e);
                 // If the code didn't successfully get the weather data, there's no point in attempting
                 // to parse it.
                 return null;
-            } finally{
+            } finally {
                 if (urlConnection != null) {
                     urlConnection.disconnect();
                 }
@@ -274,7 +279,7 @@ public class ForecastFragment extends Fragment {
                     try {
                         reader.close();
                     } catch (final IOException e) {
-                        Log.e("ForecastFragment", "Error closing stream", e);
+                        Log.e(LOG_TAG, "Error closing stream", e);
                     }
                 }
             }
@@ -286,8 +291,19 @@ public class ForecastFragment extends Fragment {
                 e.printStackTrace();
             }
 
-            // Only happens if error getting or parsing the forecast data
+            // This will only happen if there was an error getting or parsing the forecast.
             return null;
+        }
+
+        @Override
+        protected void onPostExecute(String[] result) {
+            if (result != null) {
+                mForecastAdapter.clear();
+                for(String dayForecastStr : result) {
+                    mForecastAdapter.add(dayForecastStr);
+                }
+                // Data is fetched and displayed! :)
+            }
         }
     }
 }
